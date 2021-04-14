@@ -94,29 +94,7 @@ Tub: Colony ID
 Elytra: Size of the insects elytra, used as a proxy for body size
 Number.of.observations: Number of times they were seen on top of fungus, proxy for activity levels
 
-```{r}
-#Get separate dataframes for the undisturbed and disturbed treatments
-und=filter(netPos, Treatment=="C")
-dis=filter(netPos, Treatment=="T")
-```
-```{r}
-#Get data into separate dataframes for each network measure
 
-und_strength=spread(und[,c(1,4,7,10)], Period, strength) #Get only columns of interest and  spread so that values for periods are side by side
-und_betweenness=spread(und[,c(1,5,7,10)], Period, betweenness)
-und_clust=spread(und[,c(1,6,7,10)], Period, Clustering.coefficient)
-
-dis_strength=spread(dis[,c(1,4,7,10)], Period, strength)
-dis_betweenness=spread(dis[,c(1,5,7,10)], Period, betweenness)
-dis_clust=spread(dis[,c(1,6,7,10)], Period, Clustering.coefficient)
-
-colnames(und_strength)[3:4] <- c("P1", "P2") #rename columns so they are more easily accessible
-colnames(und_betweenness)[3:4] <- c("P1", "P2")
-colnames(und_clust)[3:4] <- c("P1", "P2")
-colnames(dis_strength)[3:4] <- c("P1", "P2")
-colnames(dis_betweenness)[3:4] <- c("P1", "P2")
-colnames(dis_clust)[3:4] <- c("P1", "P2")
-```
 
 #Analysis
 
@@ -153,9 +131,35 @@ I get essentially the same values as do the original authors!
 
 #See if ICC for individual network measures is significant in the UNDISTURBED networks:
 
-A not on these permutation tests: When modelling social networks, permutation tests are used as the non-independence of data points violates assumptions of parametric statistics. Rather than permuting networks in a way that maintains the structure of the data (as is the norm with social network analysis), and then calculating network metrics from these permuted networks, the authors simply shuffled network metrics among individuals. Additionally, they shuffle these values between populations, rather than permuting within populations; this I think is also an error as the structure of the networks will be changed when doing this. I think these may be issues with their analysis, but I have opted to follow their methods as closely as I can.
+A not on these permutation tests: When modelling social networks, permutation tests are used as the non-independence of data points violates assumptions of parametric statistics. Rather than permuting networks in a way that maintains the structure of the data (as is the norm with social network analysis), and then calculating network metrics from these permuted networks, the authors simply shuffled network metrics among individuals. Additionally, they shuffle these values between populations, rather than permuting within populations; this I think is also an error as the structure of the networks will be changed when doing this. I think these may be issues with their analysis, but I have opted to follow their methods as closely as I can. When permuting, I pooled data in the same way they did (see screenshot below); permutations were pooled across all replicates for each separate treatment. This is why I separate the dataframe into 2 dataframes; one for the undisturbed treatment, one for the disturbed.
+
+![Summary table from the paper](perms_icc.png)
 
 The paper said that they included individual ID nested within Tub as random effects. However, as this is an intraclass correlation, each individual is represented only once, meaning the number of iundividual random effects is the same as the number of data points, which doesnt make sense and is not allowed by lmer. Thus I have not included the individual as a random effect.
+
+```{r}
+#Get separate dataframes for the undisturbed and disturbed treatments
+und=filter(netPos, Treatment=="C")
+dis=filter(netPos, Treatment=="T")
+```
+```{r}
+#Get data into separate dataframes for each network measure
+
+und_strength=spread(und[,c(1,4,7,10)], Period, strength) #Get only columns of interest and  spread so that values for periods are side by side
+und_betweenness=spread(und[,c(1,5,7,10)], Period, betweenness)
+und_clust=spread(und[,c(1,6,7,10)], Period, Clustering.coefficient)
+
+dis_strength=spread(dis[,c(1,4,7,10)], Period, strength)
+dis_betweenness=spread(dis[,c(1,5,7,10)], Period, betweenness)
+dis_clust=spread(dis[,c(1,6,7,10)], Period, Clustering.coefficient)
+
+colnames(und_strength)[3:4] <- c("P1", "P2") #rename columns so they are more easily accessible
+colnames(und_betweenness)[3:4] <- c("P1", "P2")
+colnames(und_clust)[3:4] <- c("P1", "P2")
+colnames(dis_strength)[3:4] <- c("P1", "P2")
+colnames(dis_betweenness)[3:4] <- c("P1", "P2")
+colnames(dis_clust)[3:4] <- c("P1", "P2")
+```
 
 ```{r, message = FALSE}
 #This function just performs intra-class correlation analysis. I have to run it 6 times, so figured a function would be neater. 
@@ -234,14 +238,15 @@ pval_c_d
 ```
 ```{r}
 df2=data.frame(metrics=c("strength", "betweenness", "cluctering coef"))
-df2$Undisturbed=c(paste(round(ICC_und_strength[[1]], 2), "(", round(pvalue_s_u, 3), ")"), paste(round(ICC_und_betweenness[[1]], 2), "(", round(pvalue_b_u, 3), ")"), paste(round(ICC_und_clust[[1]], 2), "(", round(pvalue_c_u, 3)))
-df2$Disturbed=c(paste(round(ICC_dis_strength[[1]], 2), "(", round(pvalue_s_d, 3), ")"), paste(round(ICC_dis_betweenness[[1]], 2), "(", round(pvalue_b_d, 3), ")"), paste(round(ICC_dis_clust[[1]], 2), "(", round(pvalue_c_d, 3)))
+df2$Undisturbed=c(paste(round(ICC_und_strength[[1]], 2), "(", round(pval_s_u, 3), ")"), paste(round(ICC_und_betweenness[[1]], 2), "(", round(pval_b_u, 3), ")"), paste(round(ICC_und_clust[[1]], 2), "(", round(pval_c_u, 3)))
+df2$Disturbed=c(paste(round(ICC_dis_strength[[1]], 2), "(", round(pval_s_d, 3), ")"), paste(round(ICC_dis_betweenness[[1]], 2), "(", round(pval_b_d, 3), ")"), paste(round(ICC_dis_clust[[1]], 2), "(", round(pval_c_d, 3)))
 
 print(df2)
 ```
 
 ![ICC results from paper](ICC.png)
 
+My numbers are a little off from theirs, but are fairly close, and our analyses agree in terms of which values are significant, and the signs of the correlations!
 
 
 #Visualize Undisturbed Networks at both time points:
@@ -420,11 +425,11 @@ title("Disturbed T4, Time 2")
 
 ![Social Network Visualizations from the Paper](networks 1.png)
 
-#Permutations tests to analyse effect of treatment on consistency of network metrics
-#We perform three rounds of permutations tests; one with each metric (strength, betweenness, clustering coefficient) as the permuted response variable. 
+#Permutations tests to analyse effect of treatment on consistency of network metrics:
 
-#Strength Permutations:
+We perform three rounds of permutations tests; one with each metric (strength, betweenness, clustering coefficient) as the permuted response variable. I have just permuted the response variable.
 
+Strength Permutations:
 ```{r}
 #get observed coefficients for each predictor variable in the model:
 
@@ -455,48 +460,50 @@ for (i in 1:global_perms){ #
   perms_C5s[i]=summ$coefficients[5, 1]
   perms_C6s[i]=summ$coefficients[6, 1]
   perms_C7s[i]=summ$coefficients[7, 1]
-  if (i %% 500==0){
+  if (i %% 100==0){
       print(i)}
 }
 ```
 ```{r}
 hist(perms_C2s, breaks=50, xlim=c(-1, 1))
 abline(v=obs_c2s, col='red')
-sum(perms_C2s > obs_c2s)/n_perms
+pval_s_c2=sum(perms_C2s > obs_c2s)/global_perms
+pval_s_c2
 ```
 ```{r}
 hist(perms_C3s, breaks=50, xlim=c(-1, 1))
 abline(v=obs_c3s, col='red')
-sum(perms_C3s > obs_c3s)/n_perms
+pval_s_c3=sum(perms_C3s > obs_c3s)/global_perms
+pval_s_c3
 ```
 ```{r}
 hist(perms_C4s, breaks=50, xlim=c(-1, 1))
 abline(v=obs_c4s, col='red')
-sum(perms_C4s < obs_c4s)/n_perms
+pval_s_c4=sum(perms_C4s < obs_c4s)/global_perms
+pval_s_c4
 ```
 ```{r}
 hist(perms_C5s, breaks=50, xlim=c(-1, 1))
 abline(v=obs_c5s, col='red')
-sum(perms_C5s < obs_c5s)/n_perms
+pval_s_c5=sum(perms_C5s < obs_c5s)/global_perms
+pval_s_c5
 ```
 ```{r}
 hist(perms_C6s, breaks=50, xlim=c(-1, 1))
 abline(v=obs_c6s, col='red')
-sum(perms_C6s > obs_c6s)/n_perms
+pval_s_c6=sum(perms_C6s > obs_c6s)/global_perms
+pval_s_c6
 ```
 ```{r}
 hist(perms_C7s, breaks=50, xlim=c(-1, 1))
 abline(v=obs_c7s, col='red')
-sum(perms_C7s < obs_c7s)/n_perms
-```
-
-```{r}
-
-summary(lmer(strength~Treatment*Period+Sex+Elytra+Number.of.observations + (1|Focal.Letter.ID) + (1|Tub), data = netPos))
+pval_s_c7=sum(perms_C7s < obs_c7s)/global_perms
+pval_s_c7
 ```
 
 
-#Betweenness Perms
+
+Betweenness Perms
 ```{r}
 #get observed coefficients
 obs_c2b=summary(lmer(betweenness~Treatment*Period+Sex+Elytra+Number.of.observations + (1|Focal.Letter.ID) + (1|Tub), data = netPos))$coefficients[2, 1]
@@ -509,7 +516,6 @@ obs_c7b=summary(lmer(betweenness~Treatment*Period+Sex+Elytra+Number.of.observati
 ```
 ```{r, message = FALSE}
 #Get permuted distributions
-n_perms=1000
 perms_C2b=numeric(global_perms)
 perms_C3b=numeric(global_perms)
 perms_C4b=numeric(global_perms)
@@ -532,40 +538,46 @@ for (i in 1:global_perms){
 }
 ```
 ```{r}
-hist(perms_C2b, breaks=50, xlim=c(-1, 1))
+hist(perms_C2b, breaks=50, xlim=c(-30, 30))
 abline(v=obs_c2b, col='red')
-sum(perms_C2b > obs_c2b)/n_perms
+pval_b_c2=sum(perms_C2b < obs_c2b)/global_perms
+pval_b_c2
 ```
 ```{r}
-hist(perms_C3b, breaks=50, xlim=c(-1, 1))
+hist(perms_C3b, breaks=50, xlim=c(-30, 30))
 abline(v=obs_c3b, col='red')
-sum(perms_C3b > obs_c3b)/n_perms
+pval_b_c3=sum(perms_C3b > obs_c3b)/global_perms
+pval_b_c3
 ```
 ```{r}
-hist(perms_C4b, breaks=50, xlim=c(-1, 1))
+hist(perms_C4b, breaks=50, xlim=c(-30, 30))
 abline(v=obs_c4b, col='red')
-sum(perms_C4b < obs_c4b)/n_perms
+pval_b_c4=sum(perms_C4b < obs_c4b)/global_perms
+pval_b_c4
 ```
 ```{r}
-hist(perms_C5b, breaks=50, xlim=c(-1, 1))
+hist(perms_C5b, breaks=50, xlim=c(-30, 30))
 abline(v=obs_c5b, col='red')
-sum(perms_C5b < obs_c5b)/n_perms
+pval_b_c5=sum(perms_C5b > obs_c5b)/global_perms
+pval_b_c5
 ```
 ```{r}
 hist(perms_C6b, breaks=50, xlim=c(-1, 1))
 abline(v=obs_c6b, col='red')
-sum(perms_C6b > obs_c6b)/n_perms
+pval_b_c6=sum(perms_C6b > obs_c6b)/global_perms
+pval_b_c6
 ```
 ```{r}
-hist(perms_C7b, breaks=50, xlim=c(-1, 1))
+hist(perms_C7b, breaks=50, xlim=c(-30, 30))
 abline(v=obs_c7b, col='red')
-sum(perms_C7b < obs_c7b)/n_perms
+pval_b_c7=sum(perms_C7b < obs_c7b)/global_perms
+pval_b_c7
 ```
 
 
 
 
-#BClustering Perms
+Clustering Perms
 ```{r}
 #get observed coefficients
 obs_c2c=summary(lmer(Clustering.coefficient~Treatment*Period+Sex+Elytra+Number.of.observations + (1|Focal.Letter.ID) + (1|Tub), data = netPos))$coefficients[2, 1]
@@ -600,35 +612,61 @@ for (i in 1:global_perms){
 }
 ```
 ```{r}
-hist(perms_C2c, breaks=50, xlim=c(-1, 1))
+hist(perms_C2c, breaks=50, xlim=c(-0.5, 0.5))
 abline(v=obs_c2c, col='red')
-sum(perms_C2c > obs_c2c)/n_perms
+pval_c_c2=sum(perms_C2c > obs_c2c)/global_perms
+pval_c_c2
 ```
 ```{r}
-hist(perms_C3c, breaks=50, xlim=c(-1, 1))
+hist(perms_C3c, breaks=50, xlim=c(-0.5, 0.5))
 abline(v=obs_c3c, col='red')
-sum(perms_C3c > obs_c3c)/n_perms
+pval_c_c3=sum(perms_C3c > obs_c3c)/global_perms
+pval_c_c3
 ```
 ```{r}
-hist(perms_C4c, breaks=50, xlim=c(-1, 1))
+hist(perms_C4c, breaks=50, xlim=c(-0.5, 0.5))
 abline(v=obs_c4c, col='red')
-sum(perms_C4c < obs_c4c)/n_perms
+pval_c_c4=sum(perms_C4c < obs_c4c)/global_perms
+pval_c_c4
 ```
 ```{r}
-hist(perms_C5c, breaks=50, xlim=c(-1, 1))
+hist(perms_C5c, breaks=50, xlim=c(-0.5, 0.5))
 abline(v=obs_c5c, col='red')
-sum(perms_C5c < obs_c5c)/n_perms
+pval_c_c5=sum(perms_C5c < obs_c5c)/global_perms
+pval_c_c5
 ```
 ```{r}
-hist(perms_C6c, breaks=50, xlim=c(-1, 1))
+hist(perms_C6c, breaks=50, xlim=c(-0.05, 0.05))
 abline(v=obs_c6c, col='red')
-sum(perms_C6c > obs_c6c)/n_perms
+pval_c_c6=sum(perms_C6c < obs_c6c)/global_perms
+pval_c_c6
 ```
 ```{r}
-hist(perms_C7c, breaks=50, xlim=c(-1, 1))
+hist(perms_C7c, breaks=50, xlim=c(-0.5, 0.5))
 abline(v=obs_c7c, col='red')
-sum(perms_C7c < obs_c7c)/n_perms
+pval_c_c7=sum(perms_C7c < obs_c7c)/global_perms
+pval_c_c7
 ```
+```{r}
+summary(lmer(betweenness~Treatment*Period+Sex+Elytra+Number.of.observations + (1|Focal.Letter.ID) + (1|Tub), data = netPos))
+```
+```{r}
+obs_c2s
+```
+
+```{r}
+df3=data.frame(Factor=c("Treatment", "Period", "TreatmentXPeriod", "Sex", "Body size", "Activity"))
+df3$Strength=c(paste(round(obs_c2s, 2), "(", round(pval_s_c2, 3), ")"),paste(round(obs_c3s, 2), "(", round(pval_s_c3, 3), ")"),paste(round(obs_c7s, 2), "(", round(pval_s_c7, 3), ")"),paste(round(obs_c4s, 2), "(", round(pval_s_c4, 3), ")"),paste(round(obs_c5s, 2), "(", round(pval_s_c5, 3), ")"),paste(round(obs_c6s, 2), "(", round(pval_s_c6, 3), ")"))
+df3$Betweenness=c(paste(round(obs_c2b, 2), "(", round(pval_b_c2, 3), ")"),paste(round(obs_c3b, 2), "(", round(pval_b_c3, 3), ")"),paste(round(obs_c7b, 2), "(", round(pval_b_c7, 3), ")"),paste(round(obs_c4b, 2), "(", round(pval_b_c4, 3), ")"),paste(round(obs_c5b, 2), "(", round(pval_b_c5, 3), ")"),paste(round(obs_c6b, 2), "(", round(pval_b_c6, 3), ")"))
+df3$Cluster_coef=c(paste(round(obs_c2c, 2), "(", round(pval_c_c2, 3), ")"),paste(round(obs_c3c, 2), "(", round(pval_c_c3, 3), ")"),paste(round(obs_c7c, 2), "(", round(pval_c_c7, 3), ")"),paste(round(obs_c4c, 2), "(", round(pval_c_c4, 3), ")"),paste(round(obs_c5c, 2), "(", round(pval_c_c5, 3), ")"),paste(round(obs_c6c, 2), "(", round(pval_c_c6, 3), ")"))
+               
+print(df3)
+```
+
+![Social Network Visualizations from the Paper](glmm.png)
+
+Hmm... my results are way off of theirs! What gives?? Disagreement on whats significant, as well as the signs of some of the coefficient. I think the most likely explanation is that I permuted in a different way that they did. They did not specify what was permuted; the response or predictor vars. I went for the response var just because it would be easier, but it's possible they premuted each separate predictor var, which would alter the relationships among the precictor vars. This could produce different results. They did not go into detail about this in their paper... Oh well...
+
 
 ```{r}
 s=lmer(strength~Treatment*Period+Sex+Elytra+Number.of.observations + (1|Focal.Letter.ID) + (1|Tub), data = netPos)
