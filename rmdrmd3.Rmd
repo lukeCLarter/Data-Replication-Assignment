@@ -16,7 +16,6 @@ library(lmerTest) #gives pvals in lmer summary
 library(igraph)
 library(tnet)
 library(lsmeans)
-library(PerformanceAnalytics)
 ```
 
 #Introduction
@@ -25,7 +24,7 @@ library(PerformanceAnalytics)
 
 Paper aims:
 
-This paper aims to assess how repeatable social network metrics are, at the level of the individual and at the level of the group. They do this busing social networks of artifical lab colonies of forked fungus beetles. To investigate whether there has been a significant change in network metrics, they compare network metrics for 2 successive time periods. Additionally, to investigate whether disturbance influences the stability of these network metrics, they compare stability of undisturbed colonies to those that have been disturbed and transplanted into new enclosures. Their rationale for this research question is that many studies claim that network position has effects on fitness, and for this to be evolutionarily meaningful there must be some degree of repeatability in network positions for individuals and groups.
+This paper aims to assess how repeatable social network metrics are, at the level of the individual and at the level of the group. They do this using social networks of artifical lab colonies of forked fungus beetles. To investigate whether there has been a significant change in network metrics, they compare network metrics for 2 successive time periods. Additionally, to investigate whether disturbance influences the stability of these network metrics, they compare stability of undisturbed colonies to those that have been disturbed and transplanted into new enclosures. Their rationale for this research question is that many studies claim that network position has effects on fitness, and for this to be evolutionarily meaningful there must be some degree of repeatability in network positions for individuals and groups.
 
 
 Details of experiment:
@@ -42,6 +41,7 @@ Networks were undirected and edges were based on the frequency of social interac
 ![Simple Ratio Index Calculation](sri.png)
 
 - Network measures of interest:
+Repeatability in the following network measures is analysed in the paper
 Strength: The weighted equivalent of binary degree is the sum of all edge weights connected to the node (Farine).
 
 Betweenness: A count of the number of shortest paths that flow through the node. This measures how important a node is for connecting disparate parts of a social network.
@@ -49,7 +49,7 @@ Betweenness: A count of the number of shortest paths that flow through the node.
 Clustering Coefficient: A measure of cliquishness, quantified as the proportion of and frequency with which an individual’s social partners interact with each other (Croft et al. 2008).
 
 - Types of analyses performed:
-An intraclass correlation coefficient was used to setermine how repeatable individual network measures were, and a linear mixed model was used to determine the repeatability of group-level network metrics. Due to data points in social network analysis not being independent, all determinations of significance were done vis permutation tests.  
+An intraclass correlation (in the form of a mixed model) was used to determine how repeatable individual network measures were, and a linear mixed model was used to determine the repeatability of group-level network metrics. Due to data points in social network analysis not being independent, all determinations of significance were done via permutation tests.  
 
 
 Findings:
@@ -95,10 +95,19 @@ Elytra: Size of the insects elytra, used as a proxy for body size
 Number.of.observations: Number of times they were seen on top of fungus, proxy for activity levels
 
 
+Check for missing values:
+```{r}
+nrow(edges)-nrow(edges[complete.cases(edges), ])
+nrow(netPos)-nrow(netPos[complete.cases(netPos), ])
+
+#very few missing values! Sweet!
+```
 
 #Analysis
 
-#Data Summary:
+#Data Summary analysis:
+
+Get means/sds for network measures, and test for the correlation between different network measures:
 
 Get correlation coefficients for variables of interest:
 ```{r}
@@ -107,7 +116,7 @@ sc=cor.test(netPos[complete.cases(netPos), ][,4], netPos[complete.cases(netPos),
 bc=cor.test(netPos[complete.cases(netPos), ][,5], netPos[complete.cases(netPos), ][,6], method = "spearman")
 ```
 
-get means/sds, and recreate summary table:
+get means/sds for network measures, and test for the correlation between different network measures:
 ```{r}
 summary <- netPos %>% 
   summarise(mean_strength = mean(strength, na.rm = TRUE),
@@ -118,7 +127,7 @@ summary <- netPos %>%
             sd_cluster =sd(Clustering.coefficient, na.rm = TRUE)) %>% round(digits =2)
 
 
-df=data.frame(metrics=c("strength", "betweenness", "cluctering coef"))
+df=data.frame(metrics=c("strength", "betweenness", "clustering coef"))
 df$mean_SD=c(paste(summary$mean_strength, " +/- ", summary$sd_strength), paste(summary$mean_betweenness, " +/- ", cdata$sd_betweenness), paste(summary$mean_cluster, " +/- ", summary$sd_cluster))
 df$Strength=c(paste("--"), paste(round(sb$estimate, 2), "(", round(sb$p.value, 3), ")"), paste(round(sc$estimate, 2), "(", round(sc$p.value, 3), ")"))
 df$Betweenness=c(paste("--"), paste("--"), paste(round(bc$estimate, 2), "(", round(bc$p.value, 3), ")"))
@@ -129,13 +138,15 @@ print(df)
 I get essentially the same values as do the original authors!
 
 
-#See if ICC for individual network measures is significant in the UNDISTURBED networks:
+#See if Intra-class correlation coefficient (ICC) for individual network measures is significant in the UNDISTURBED networks:
 
-A not on these permutation tests: When modelling social networks, permutation tests are used as the non-independence of data points violates assumptions of parametric statistics. Rather than permuting networks in a way that maintains the structure of the data (as is the norm with social network analysis), and then calculating network metrics from these permuted networks, the authors simply shuffled network metrics among individuals. Additionally, they shuffle these values between populations, rather than permuting within populations; this I think is also an error as the structure of the networks will be changed when doing this. I think these may be issues with their analysis, but I have opted to follow their methods as closely as I can. When permuting, I pooled data in the same way they did (see screenshot below); permutations were pooled across all replicates for each separate treatment. This is why I separate the dataframe into 2 dataframes; one for the undisturbed treatment, one for the disturbed.
+An ICC will tell you whether an individual at the 2 timepoints significantly resembles themself.
+
+A not on these permutation tests: When modelling social networks, permutation tests are used as the non-independence of data points violates assumptions of parametric statistics. Rather than permuting networks in a way that maintains the structure of the data (as is the norm with social network analysis), and then calculating network metrics from these permuted networks, the authors simply shuffled network metrics among individuals. Additionally, they shuffle these values between populations, rather than permuting within populations; this I think is also an error as the structure of each network will be changed when doing this. I think these may be issues with their analysis, but I have opted to follow their methods as closely as I can. When permuting, I pooled data in the same way they did (see screenshot below); permutations were pooled across all replicates for each separate treatment. This is why I separate the dataframe into 2 dataframes; one for the undisturbed treatment, one for the disturbed.
 
 ![Summary table from the paper](perms_icc.png)
 
-The paper said that they included individual ID nested within Tub as random effects. However, as this is an intraclass correlation, each individual is represented only once, meaning the number of iundividual random effects is the same as the number of data points, which doesnt make sense and is not allowed by lmer. Thus I have not included the individual as a random effect.
+The paper said that they included individual ID nested within Tub as random effects. However, as this is an intraclass correlation, each individual is represented only once, meaning the number of levels of the individual random effect is the same as the number of data points, which doesnt make sense and is not allowed by lmer. Thus I have not included the individual as a random effect.
 
 ```{r}
 #Get separate dataframes for the undisturbed and disturbed treatments
@@ -162,7 +173,7 @@ colnames(dis_clust)[3:4] <- c("P1", "P2")
 ```
 
 ```{r, message = FALSE}
-#This function just performs intra-class correlation analysis. I have to run it 6 times, so figured a function would be neater. 
+#This function just performs intra-class correlation analysis. I have to run 6 analyses, so figured a function would be neater. 
 
 ICC_perms=function(df, n_perms){
   obs=summary(lmer(P1 ~ P2 + (1|Tub) , data = df[complete.cases(df), ]))$coefficients[2, 1] #gets coef for real data
@@ -236,6 +247,8 @@ abline(v=ICC_dis_clust[[1]], col='red')
 pval_c_d=sum(ICC_dis_clust[[2]] > ICC_dis_clust[[1]])/(ICC_dis_clust[[3]])
 pval_c_d
 ```
+
+Results dataframe:
 ```{r}
 df2=data.frame(metrics=c("strength", "betweenness", "cluctering coef"))
 df2$Undisturbed=c(paste(round(ICC_und_strength[[1]], 2), "(", round(pval_s_u, 3), ")"), paste(round(ICC_und_betweenness[[1]], 2), "(", round(pval_b_u, 3), ")"), paste(round(ICC_und_clust[[1]], 2), "(", round(pval_c_u, 3)))
@@ -654,6 +667,7 @@ summary(lmer(betweenness~Treatment*Period+Sex+Elytra+Number.of.observations + (1
 obs_c2s
 ```
 
+Results dataframe:
 ```{r}
 df3=data.frame(Factor=c("Treatment", "Period", "TreatmentXPeriod", "Sex", "Body size", "Activity"))
 df3$Strength=c(paste(round(obs_c2s, 2), "(", round(pval_s_c2, 3), ")"),paste(round(obs_c3s, 2), "(", round(pval_s_c3, 3), ")"),paste(round(obs_c7s, 2), "(", round(pval_s_c7, 3), ")"),paste(round(obs_c4s, 2), "(", round(pval_s_c4, 3), ")"),paste(round(obs_c5s, 2), "(", round(pval_s_c5, 3), ")"),paste(round(obs_c6s, 2), "(", round(pval_s_c6, 3), ")"))
