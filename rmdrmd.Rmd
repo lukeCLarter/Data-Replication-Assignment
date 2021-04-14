@@ -43,6 +43,8 @@ df_to_matrix=function(df){ #Since I'm only using it for this dataset, didn't bot
 }
 ```
 
+
+
 ```{r}
 netPos=read.csv("NetworkPositions_Observed.csv", header = T)
 edges=read.csv("SRI_edgelist.csv", header = T)
